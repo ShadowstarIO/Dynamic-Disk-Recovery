@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use this guide, please cite it as below."
+title: "Dynamic Disk Recovery: Convert a Windows 11 Boot Drive from Dynamic to Basic Without Data Loss"
+type: software
+authors:
+  - given-names: Xoza
+    family-names: Shadow
+repository-code: "https://github.com/ShadowstarIO/Dynamic-Disk-Recovery"
+url: "https://github.com/ShadowstarIO/Dynamic-Disk-Recovery"
+license: CC-BY-4.0
+date-released: "2026-11-07"
+keywords: [dynamic disk, LDM, INACCESSIBLE_BOOT_DEVICE, IO1_INITIALIZATION_FAILED, sgdisk, hivex, Windows 11, data recovery]
