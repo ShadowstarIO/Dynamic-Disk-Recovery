@@ -14,7 +14,7 @@
 
 ## Credits / Acknowledgments
 - **Author:** Xoza Shadow, who did the recovery and wrote this guide.
-- Developed with help from Xoza's AI tech-support assistant, **Patch**, which helped with diagnosis, command checks, and drafting.
+- Developed with help from Xoza's AI tech-support assistant, **Patch**, which helped with diagnosis, command checks, and drafting. Want your own AI tech-support assistant like Patch? [Get the Patch · Tech Support bot template](https://x.ai/bot/bLGDpzvR9jWwDQrcgTIJp).
 - Thanks to the Super User poster whose IO1_INITIALIZATION_FAILED write-up confirmed the partition-numbering fix.
 
 ---
