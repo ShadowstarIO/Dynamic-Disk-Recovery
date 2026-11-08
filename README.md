@@ -40,5 +40,7 @@ While a USB stick was being wiped in Windows **Disk Management**, 9 drives, incl
 ## Credits
 Written by **Xoza Shadow**, with help from his AI tech-support assistant, **Patch**. See [references and credits](docs/references.md). To cite this guide, see [CITATION.cff](CITATION.cff).
 
+Want your own AI tech-support assistant like Patch? [Get the Patch · Tech Support bot template](https://x.ai/bot/bLGDpzvR9jWwDQrcgTIJp).
+
 ## License
 Docs: [CC BY 4.0](LICENSE). Scripts are provided as-is; read them before running.
