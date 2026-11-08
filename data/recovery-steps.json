@@ -1,0 +1,148 @@
+{
+  "title": "Dynamic Disk Recovery",
+  "repository": "https://github.com/ShadowstarIO/Dynamic-Disk-Recovery",
+  "author": "Xoza Shadow",
+  "license": "CC-BY-4.0",
+  "errors": [
+    "INACCESSIBLE_BOOT_DEVICE (0x7B)",
+    "Invalid dynamic pack",
+    "IO1_INITIALIZATION_FAILED (0x69)"
+  ],
+  "environment": "Ubuntu 24.04 live USB + Windows RE command prompt",
+  "steps": [
+    {
+      "order": 1,
+      "id": "backup",
+      "goal": "Back up partition tables and the first/last 1 MiB of every disk",
+      "commands": [
+        "sudo apt install -y gdisk ntfs-3g libhivex-bin libwin-hivex-perl",
+        "sudo ./scripts/backup-disk-metadata.sh /backup/dir /dev/sdX ..."
+      ],
+      "risk": "read-only",
+      "verification": "Backup files exist for every disk; SHA256SUMS written",
+      "doc": "docs/02-backup-first.md"
+    },
+    {
+      "order": 2,
+      "id": "verify-ntfs-bounds",
+      "goal": "Confirm each NTFS volume's start and size",
+      "commands": [
+        "sudo ntfsresize --info --force --no-action /dev/sdX1"
+      ],
+      "risk": "read-only",
+      "verification": "Volume size known; NTFS boot sector found at the expected start",
+      "doc": "docs/02-backup-first.md"
+    },
+    {
+      "order": 3,
+      "id": "convert-gpt",
+      "goal": "Convert GPT dynamic disks to basic",
+      "commands": [
+        "sudo sgdisk -p /dev/sdX",
+        "sudo sgdisk -t 3:0700 -d 1 /dev/sdX && sudo sgdisk -p /dev/sdX"
+      ],
+      "risk": "writes-disk",
+      "verification": "No 4201/4202 partition types remain; sgdisk -v reports no problems",
+      "doc": "docs/03-convert-gpt.md"
+    },
+    {
+      "order": 4,
+      "id": "convert-mbr",
+      "goal": "Convert MBR dynamic disks (type 0x42) to basic",
+      "commands": [
+        "sudo sfdisk -d /dev/sdX",
+        "printf 'label: dos\\nlabel-id: 0xSIGNATURE\\nunit: sectors\\n\\nstart=2048, size=SIZE, type=7\\n' | sudo sfdisk --no-reread /dev/sdX"
+      ],
+      "risk": "writes-disk",
+      "verification": "label-id unchanged; ntfsfix -n clean; ntfsresize size <= partition size",
+      "doc": "docs/04-convert-mbr.md"
+    },
+    {
+      "order": 5,
+      "id": "restore-bootexecute",
+      "goal": "Remove the nb-fre BootExecute hook",
+      "commands": [
+        "sudo hivexregedit --merge --prefix 'HKEY_LOCAL_MACHINE\\SYSTEM' /mnt/win/Windows/System32/config/SYSTEM /tmp/fix.reg"
+      ],
+      "risk": "writes-registry",
+      "verification": "BootExecute == 'autocheck autochk *'",
+      "doc": "docs/05-offline-registry-fixes.md"
+    },
+    {
+      "order": 6,
+      "id": "delete-mda-ntdrv",
+      "goal": "Delete the NIUBI MDA_NTDRV service (WinRE)",
+      "commands": [
+        "reg load HKLM\\OFFSYS <WinDrive>:\\Windows\\System32\\config\\SYSTEM",
+        "reg query HKLM\\OFFSYS /s /f MDA_NTDRV",
+        "reg delete HKLM\\OFFSYS\\ControlSet001\\Services\\MDA_NTDRV /f"
+      ],
+      "risk": "writes-registry",
+      "verification": "reg query /f MDA_NTDRV returns no service key",
+      "doc": "docs/05-offline-registry-fixes.md"
+    },
+    {
+      "order": 7,
+      "id": "delete-primarypackid",
+      "goal": "Delete volmgrx PrimaryPackId (WinRE)",
+      "commands": [
+        "reg query HKLM\\OFFSYS\\ControlSet001\\Services\\volmgrx /s",
+        "reg delete HKLM\\OFFSYS\\ControlSet001\\Services\\volmgrx /v PrimaryPackId /f",
+        "reg unload HKLM\\OFFSYS"
+      ],
+      "risk": "writes-registry",
+      "verification": "PrimaryPackId absent under Services\\volmgrx",
+      "doc": "docs/05-offline-registry-fixes.md"
+    },
+    {
+      "order": 8,
+      "id": "rewrite-mounteddevices",
+      "goal": "Rewrite stale GPT drive-letter entries to DMIO:ID:+partition GUID",
+      "commands": [
+        "sudo sgdisk -i N /dev/sdX",
+        "./scripts/guid-to-mounteddevices.sh {PARTITION-GUID}"
+      ],
+      "risk": "writes-registry",
+      "verification": "Each rewritten \\DosDevices\\X: value = 444d494f3a49443a + mixed-endian GUID",
+      "doc": "docs/05-offline-registry-fixes.md"
+    },
+    {
+      "order": 9,
+      "id": "sort-gpt",
+      "goal": "Fix 0x69 by closing GPT partition-number gaps",
+      "commands": [
+        "sudo sgdisk --print --verify /dev/X",
+        "sudo sgdisk --pretend --sort --print /dev/X",
+        "for d in <disks>; do sudo sgdisk --sort /dev/$d; done"
+      ],
+      "risk": "writes-disk",
+      "verification": "Partitions numbered 1..n with no gaps",
+      "doc": "docs/06-fix-0x69-partition-gaps.md"
+    },
+    {
+      "order": 10,
+      "id": "verify-before-reboot",
+      "goal": "Read-only checks before rebooting",
+      "commands": [
+        "sudo ./scripts/verify-readonly.sh /path/SYSTEM /dev/DISK ..."
+      ],
+      "risk": "read-only",
+      "verification": "All checklist items pass",
+      "doc": "docs/07-verify-before-reboot.md"
+    },
+    {
+      "order": 11,
+      "id": "after-boot",
+      "goal": "Clean up after Windows boots",
+      "commands": [
+        "Set-Partition -DiskNumber D -PartitionNumber P -NewDriveLetter L",
+        "w32tm /resync",
+        "chkdsk C: /scan",
+        "chkdsk X: /spotfix"
+      ],
+      "risk": "low",
+      "verification": "Letters correct; clock correct; chkdsk /scan clean (spotfix recommended where flagged)",
+      "doc": "docs/08-after-boot-cleanup.md"
+    }
+  ]
+}

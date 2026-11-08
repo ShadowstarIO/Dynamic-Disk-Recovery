@@ -1,0 +1,24 @@
+# Dynamic Disk Recovery
+
+> Step-by-step guide to recovering a Windows 11 PC whose drives (including the boot disk) were accidentally converted to dynamic disks, then broken by NIUBI Partition Editor. It covers INACCESSIBLE_BOOT_DEVICE (0x7B, invalid dynamic pack) and IO1_INITIALIZATION_FAILED (0x69). All fixes were done offline from an Ubuntu 24.04 live USB with sgdisk, sfdisk, ntfsresize, and hivex, plus reg load in WinRE, without data loss.
+
+Key facts: GPT fix = `sgdisk -t <data>:0700 -d <ldm-metadata>`; MBR fix = sfdisk rewrite keeping label-id, type 07 at the true NTFS start; registry = BootExecute "autocheck autochk *", delete Services\MDA_NTDRV and Services\volmgrx PrimaryPackId, MountedDevices "DMIO:ID:"+partition GUID; 0x69 = GPT numbering gap before the Windows partition, fix with `sgdisk --sort`.
+
+## Guide
+- [What happened](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/01-what-happened.md): cause and symptoms
+- [Back up first](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/02-backup-first.md): live USB, metadata backup, NTFS bounds
+- [Convert GPT](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/03-convert-gpt.md): sgdisk retype and delete
+- [Convert MBR](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/04-convert-mbr.md): sfdisk rewrite
+- [Offline registry fixes](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/05-offline-registry-fixes.md): hivex and reg load
+- [Fix 0x69](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/06-fix-0x69-partition-gaps.md): sgdisk --sort
+- [Verify before reboot](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/07-verify-before-reboot.md): read-only checklist
+- [After-boot cleanup](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/08-after-boot-cleanup.md): letters, clock, chkdsk
+- [Troubleshooting log](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/09-troubleshooting-log.md): reasoning per fix
+- [What not to do](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/10-what-not-to-do.md): pitfalls
+
+## Data
+- [recovery-steps.json](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/data/recovery-steps.json): structured steps (id, goal, commands, risk, verification)
+
+## Optional
+- [FAQ](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/faq.md)
+- [References](https://github.com/ShadowstarIO/Dynamic-Disk-Recovery/blob/main/docs/references.md)
